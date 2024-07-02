@@ -1,0 +1,29 @@
+To determine the remaining ink levels from the provided XML data, you need to look at the `<dd:ConsumableRawPercentageLevelRemaining>` tags under the `<pudyn:Consumable>` sections. 
+
+Here's a summary of the relevant information extracted from the XML:
+
+```xml
+<pudyn:Consumable>
+	<dd:ConsumableStation>0</dd:ConsumableStation>
+	<dd:MarkerColor>CyanMagentaYellow</dd:MarkerColor>
+	<dd:ConsumableTypeEnum>inkCartridge</dd:ConsumableTypeEnum>
+	<dd:ConsumableRawPercentageLevelRemaining>0</dd:ConsumableRawPercentageLevelRemaining>
+</pudyn:Consumable>
+
+<pudyn:Consumable>
+	<dd:ConsumableStation>1</dd:ConsumableStation>
+	<dd:MarkerColor>Black</dd:MarkerColor>
+	<dd:ConsumableTypeEnum>inkCartridge</dd:ConsumableTypeEnum>
+	<dd:ConsumableRawPercentageLevelRemaining>11</dd:ConsumableRawPercentageLevelRemaining>
+</pudyn:Consumable>
+```
+
+The extracted information reveals the following ink levels:
+
+1. **CyanMagentaYellow**: 0%
+2. **Black**: 11%
+
+Thus, the ink levels for the printer at `192.168.1.26` are:
+
+- **Cyan, Magenta, Yellow (combined)**: 0% remaining
+- **Black**: 11% remaining

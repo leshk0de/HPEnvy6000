@@ -1,0 +1,9 @@
+#Total Pages Printed
+SNMPv2-SMI::mib-2.43.10.2.1.4.1.1 = Counter32: 931
+
+#Total Pages Scanned?
+SNMPv2-SMI::mib-2.43.15.1.1.2.1.7 = INTEGER: 84
+
+#Model Name
+HOST-RESOURCES-MIB::hrDeviceDescr.1 = STRING: ENVY 6000 All-in-One Printer series
+
