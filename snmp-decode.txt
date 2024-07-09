@@ -7,3 +7,6 @@ SNMPv2-SMI::mib-2.43.15.1.1.2.1.7 = INTEGER: 84
 #Model Name
 HOST-RESOURCES-MIB::hrDeviceDescr.1 = STRING: ENVY 6000 All-in-One Printer series
 
+Serial Number
+SNMPv2-SMI::mib-2.43.5.1.1.17.1 = STRING: "TH05H3D1F8"
+
