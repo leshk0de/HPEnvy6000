@@ -52,6 +52,11 @@ def save_data_to_influxdb(data):
     write_api = write_client.write_api(write_options=SYNCHRONOUS)
     INFLUXDB_BUCKET=os.environ.get("INFLUXDB_BUCKET")
 
+    if 'ink_levels_CyanMagentaYellow' not in data:
+        data["ink_levels_CyanMagentaYellow"] = 0
+    if 'ink_levels_Black' not in data:
+        data["ink_levels_Black"] = 0
+
     # Create a point with the specified data
     point = Point("printer_ink_levels") \
         .tag("host", f"{PRINTER_ADDRESS}") \
@@ -81,33 +86,72 @@ def save_data_to_influxdb(data):
 
     write_client.close()
 
-# Function to get printer data
+import requests
+import xml.etree.ElementTree as ET
+
 def get_printer_data(url):
     print(f"[INFO] Fetching data from {url}")
     response = requests.get(url, verify=False)  # Setting verify=False to ignore SSL certificate warnings
     data = {}
+
     # Check if the request was successful
     if response.status_code == 200:
-        # Parse the XML content
-        root = ET.fromstring(response.content)
-        
+        try:
+            # Parse the XML content
+            root = ET.fromstring(response.content)
+        except ET.ParseError as e:
+            print(f"Error: Failed to parse XML - {e}")
+            return None
+
         # Extract ink levels
         ink_levels = {}
         for consumable in root.findall(".//pudyn:Consumable", namespaces={"pudyn": "http://www.hp.com/schemas/imaging/con/ledm/productusagedyn/2007/12/11"}):
-            marker_color = consumable.find("dd:MarkerColor", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text
-            percentage_remaining = consumable.find("dd:ConsumableRawPercentageLevelRemaining", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text
-            ink_levels[marker_color] = percentage_remaining
-            data[f"ink_levels_{marker_color}"] = int(percentage_remaining)
-        
+            try:
+                marker_color = consumable.find("dd:MarkerColor", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text
+                percentage_remaining = consumable.find("dd:ConsumableRawPercentageLevelRemaining", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text
+
+                if marker_color is not None and percentage_remaining is not None:
+                    try:
+                        # Convert percentage_remaining to integer
+                        percentage_remaining_int = int(percentage_remaining)
+                        ink_levels[marker_color] = percentage_remaining
+                        data[f"ink_levels_{marker_color}"] = percentage_remaining_int
+                    except ValueError:
+                        print(f"Error: Unable to convert percentage remaining '{percentage_remaining}' to an integer for marker color '{marker_color}'")
+                else:
+                    print(f"Error: Missing marker color or percentage remaining for consumable")
+            except AttributeError as e:
+                print(f"Error: Failed to retrieve marker color or percentage remaining - {e}")
+
         # Extract printing statistics
-        data["total_pages"] = int(root.find(".//dd:TotalImpressions", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text)
-        data["bw_pages"] = int(root.find(".//dd:MonochromeImpressions", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text)
-        data["color_pages"] = int(root.find(".//dd:ColorImpressions", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text)
-        
+        try:
+            data["total_pages"] = int(root.find(".//dd:TotalImpressions", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text)
+        except (AttributeError, ValueError) as e:
+            print(f"Error: Failed to retrieve or convert total pages - {e}")
+            data["total_pages"] = None
+
+        try:
+            data["bw_pages"] = int(root.find(".//dd:MonochromeImpressions", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text)
+        except (AttributeError, ValueError) as e:
+            print(f"Error: Failed to retrieve or convert monochrome pages - {e}")
+            data["bw_pages"] = None
+
+        try:
+            data["color_pages"] = int(root.find(".//dd:ColorImpressions", namespaces={"dd": "http://www.hp.com/schemas/imaging/con/dictionaries/1.0/"}).text)
+        except (AttributeError, ValueError) as e:
+            print(f"Error: Failed to retrieve or convert color pages - {e}")
+            data["color_pages"] = None
+
         return data
     else:
         print(f"Failed to retrieve data: {response.status_code}")
-        return None, None, None, None
+        return None
+
+# Example usage:
+# url = "http://printer_ip_address_here"
+# printer_data = get_printer_data(url)
+# print(printer_data)
+
 
 # URL of the printer's XML data
 url = f"{PRINTER_ADDRESS}/DevMgmt/ProductUsageDyn.xml"
